@@ -32,6 +32,17 @@ func TestSnippetView(t *testing.T) {
 	ts := newTestServer(t, app.routes())
 	defer ts.Close()
 
+	// Make a GET /user/signup request and extract the CSRF token from the response body.
+	_, _, body := ts.get(t, "/user/signup")
+	csrftoken := extractCSRFToken(t, body)
+
+	// Make a POST /user/login request using the extracted CSRF token and credentials from the mock user model.
+	form := url.Values{}
+	form.Add("email", "alice@example.com")
+	form.Add("password", "pa$$word")
+	form.Add("csrf_token", csrftoken)
+	ts.postForm(t, "/user/login", form)
+
 	tests := []struct {
 		name     string
 		urlPath  string
@@ -219,7 +230,7 @@ func TestSnippetCreate(t *testing.T) {
 		assert.Equal(t, headers.Get("Location"), "/user/login")
 	})
 
-	t.Run("Authenticated", func(t *testing.T) {
+	t.Run("Authenticated and Authorized", func(t *testing.T) {
 		// Make a GET /user/signup request and extract the CSRF token from the response body.
 		_, _, body := ts.get(t, "/user/signup")
 		csrftoken := extractCSRFToken(t, body)

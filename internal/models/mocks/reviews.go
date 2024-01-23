@@ -4,22 +4,22 @@ import "github.com/mabego/snippetbox-mysql/internal/models"
 
 type ReviewModel struct{}
 
+const reviews = 5
+
 // newMockReview creates an instance of the Review struct with mock data.
 func newMockReview() *models.Review {
 	return &models.Review{
-		Reviews:   5,
 		UserID:    1,
 		SnippetID: 1,
+		Reviews:   reviews,
 	}
 }
 
-func (m *ReviewModel) Insert(userID, snippetID int) error { return nil }
+func (m *ReviewModel) Insert(_, _ int) error { return nil }
 
-func (m *ReviewModel) Exists(userID, snippetID int) (bool, error) {
-	return false, nil
-}
+func (m *ReviewModel) Exists(_, _ int) (bool, error) { return false, nil }
 
-func (m *ReviewModel) Get(userID, snippetID int) (*models.Review, error) {
+func (m *ReviewModel) Get(_, snippetID int) (*models.Review, error) {
 	switch snippetID {
 	case 1:
 		return newMockReview(), nil
@@ -28,4 +28,4 @@ func (m *ReviewModel) Get(userID, snippetID int) (*models.Review, error) {
 	}
 }
 
-func (m *ReviewModel) Update(userID, snippetID int) error { return nil }
+func (m *ReviewModel) Update(_, _ int) error { return nil }

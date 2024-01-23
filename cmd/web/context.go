@@ -4,4 +4,7 @@ package main
 // naming collisions.
 type contextKey string
 
-const isAuthenticatedContextKey = contextKey("isAuthenticated")
+const (
+	isAuthenticatedContextKey = contextKey("isAuthenticated")
+	isAuthorizedContextKey    = contextKey("isAuthorized")
+)

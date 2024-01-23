@@ -24,6 +24,14 @@
             <input type="password" name="password">
         </div>
         <div>
+            <label>Role:</label>
+            {{with .Form.FieldErrors.owner}}
+                <label class="error">{{.}}</label>
+            {{end}}
+            <input type="radio" name="owner" value="false" {{if (eq .Form.Owner false)}}checked{{end}}> Reviewer
+            <input type="radio" name="owner" value="true" {{if (eq .Form.Owner true)}}checked{{end}}> Owner
+        </div>
+        <div>
             <input type="submit" value="Signup">
         </div>
     </form>

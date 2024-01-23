@@ -24,28 +24,33 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/ping", ping)
 
 	// An unprotected middleware chain using alice, specific to 'dynamic' application routes.
-	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
+	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate, app.authorize)
 
 	// 'dynamic' middleware chain routes
-	router.Handler(http.MethodGet, "/", dynamic.ThenFunc(app.home))
-	router.Handler(http.MethodGet, "/snippet/view/:id", dynamic.ThenFunc(app.snippetView))
-	router.Handler(http.MethodGet, "/user/signup", dynamic.ThenFunc(app.userSignup))
-	router.Handler(http.MethodPost, "/user/signup", dynamic.ThenFunc(app.userSignupPost))
 	router.Handler(http.MethodGet, "/user/login", dynamic.ThenFunc(app.userLogin))
 	router.Handler(http.MethodPost, "/user/login", dynamic.ThenFunc(app.userLoginPost))
-	router.Handler(http.MethodGet, "/about", dynamic.ThenFunc(app.aboutView))
+	router.Handler(http.MethodGet, "/user/signup", dynamic.ThenFunc(app.userSignup))
+	router.Handler(http.MethodPost, "/user/signup", dynamic.ThenFunc(app.userSignupPost))
 
 	// A protected (authenticated-only) and dynamic middleware chain.
 	protected := dynamic.Append(app.requireAuthentication)
 
 	// 'protected' middleware chain routes
-	router.Handler(http.MethodGet, "/snippet/create", protected.ThenFunc(app.snippetCreate))
-	router.Handler(http.MethodPost, "/snippet/create", protected.ThenFunc(app.snippetCreatePost))
+	router.Handler(http.MethodGet, "/", protected.ThenFunc(app.home))
+	router.Handler(http.MethodGet, "/about", protected.ThenFunc(app.aboutView))
+	router.Handler(http.MethodGet, "/snippet/view/:id", protected.ThenFunc(app.snippetView))
+	router.Handler(http.MethodPost, "/snippet/view/:id", protected.ThenFunc(app.reviewUpdatePost))
 	router.Handler(http.MethodPost, "/user/logout", protected.ThenFunc(app.userLogoutPost))
 	router.Handler(http.MethodGet, "/account/view", protected.ThenFunc(app.accountView))
 	router.Handler(http.MethodGet, "/account/password/update", protected.ThenFunc(app.accountPasswordUpdate))
 	router.Handler(http.MethodPost, "/account/password/update", protected.ThenFunc(app.accountPasswordUpdatePost))
-	router.Handler(http.MethodPost, "/snippet/view/:id", protected.ThenFunc(app.reviewUpdatePost))
+
+	// An authorized-only and dynamic middleware chain.
+	owner := dynamic.Append(app.requireAuthorization)
+
+	// 'owner' middleware chain routes
+	router.Handler(http.MethodGet, "/snippet/create", owner.ThenFunc(app.snippetCreate))
+	router.Handler(http.MethodPost, "/snippet/create", owner.ThenFunc(app.snippetCreatePost))
 
 	// A middleware chain using alice containing the 'standard' middleware used for every application request.
 	standard := alice.New(app.recoverPanic, app.logRequest, secureHeaders)

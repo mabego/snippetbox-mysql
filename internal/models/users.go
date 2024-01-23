@@ -15,10 +15,12 @@ const (
 )
 
 type UserModelInterface interface {
-	Insert(name, email, password string) error
+	Insert(name, email, password string, owner bool) error
 	Authenticate(email, password string) (int, error)
+	Authorize(id int) (bool, error)
 	Exists(id int) (bool, error)
 	Get(id int) (*User, error)
+	Owner() (bool, error)
 	PasswordUpdate(id int, currentPassword, newPassword string) error
 }
 
@@ -28,6 +30,7 @@ type User struct {
 	Email          string
 	HashedPassword []byte
 	Created        time.Time
+	Owner          bool
 }
 
 // UserModel wraps a database connection pool
@@ -35,15 +38,15 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-func (m *UserModel) Insert(name, email, password string) error {
+func (m *UserModel) Insert(name, email, password string, owner bool) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), PasswordHashCost)
 	if err != nil {
 		return err
 	}
 
-	statement := `INSERT INTO users (name, email, hashed_password, created) VALUES (?, ?, ?, UTC_TIMESTAMP())`
+	statement := `INSERT INTO users (name, email, hashed_password, created, owner) VALUES (?, ?, ?, UTC_TIMESTAMP(), ?)`
 
-	_, err = m.DB.Exec(statement, name, email, string(hashedPassword))
+	_, err = m.DB.Exec(statement, name, email, string(hashedPassword), owner)
 	if err != nil {
 		// Use errors.As to check if the error has the type *mysql.MySQLError.
 		// If it does, the error is assigned to mySQLError and checked for error code 1062
@@ -86,6 +89,18 @@ func (m *UserModel) Authenticate(email, password string) (int, error) {
 	return id, nil
 }
 
+func (m *UserModel) Authorize(id int) (bool, error) {
+	var owner bool
+	query := `SELECT owner FROM users WHERE id = ?`
+
+	err := m.DB.QueryRow(query, id).Scan(&owner)
+	if err != nil {
+		return false, err
+	}
+
+	return owner, nil
+}
+
 func (m *UserModel) Exists(id int) (bool, error) {
 	var exists bool
 
@@ -112,6 +127,18 @@ func (m *UserModel) Get(id int) (*User, error) {
 	}
 
 	return &user, nil
+}
+
+func (m *UserModel) Owner() (bool, error) {
+	var owner bool
+
+	query := `SELECT EXISTS(SELECT true FROM users WHERE owner = true)`
+
+	err := m.DB.QueryRow(query).Scan(&owner)
+	if err != nil {
+		return false, err
+	}
+	return owner, nil
 }
 
 func (m *UserModel) PasswordUpdate(id int, currentPassword, newPassword string) error {
