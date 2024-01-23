@@ -3,8 +3,9 @@
         <div>
             <a href="/">Home</a>
             <a href="/about">About</a>
-            {{ if .IsAuthenticated }}
+            {{ if and .IsAuthenticated .IsAuthorized }}
                 <a href="/snippet/create">Create snippet</a>
+                <a href="/user/signup">Signup</a>
             {{ end }}
         </div>
         <div>
@@ -15,7 +16,6 @@
                     <button>Logout</button>
                 </form>
             {{ else }}
-                <a href="/user/signup">Signup</a>
                 <a href="/user/login">Login</a>
             {{ end }}
         </div>

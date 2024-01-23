@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -33,6 +34,7 @@ type userSignupForm struct {
 	Name                string `form:"name"`
 	Email               string `form:"email"`
 	Password            string `form:"password"`
+	Owner               bool   `form:"owner"`
 	validator.Validator `form:"-"`
 }
 
@@ -149,15 +151,64 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
+	owner, err := app.users.Owner()
+	if err != nil {
+		app.serverError(w, err)
+	}
+
+	// Retrieve the authenticatedUserID value from the session
+	// GetInt will return 0 if no authenticatedUserID value is in the session.
+	userID := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+
+	authorized, err := app.users.Authorize(userID)
+	if err != nil {
+		// A user needs to be logged in to be an owner.
+		if !errors.Is(err, sql.ErrNoRows) {
+			app.serverError(w, err)
+			return
+		}
+		authorized = false
+	}
+
+	if owner && !authorized {
+		http.Redirect(w, r, "/about", http.StatusSeeOther)
+		return
+	}
+
 	data := app.newTemplateData(r)
 	data.Form = userSignupForm{}
+
 	app.render(w, http.StatusOK, "signup.page.tmpl", data)
 }
 
 func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
+	owner, err := app.users.Owner()
+	if err != nil {
+		app.serverError(w, err)
+	}
+
+	// Retrieve the authenticatedUserID value from the session
+	// GetInt will return 0 if no authenticatedUserID value is in the session.
+	userID := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+
+	authorized, err := app.users.Authorize(userID)
+	if err != nil {
+		// A user needs to be logged in to be an owner.
+		if !errors.Is(err, sql.ErrNoRows) {
+			app.serverError(w, err)
+			return
+		}
+		authorized = false
+	}
+
+	if owner && !authorized {
+		http.Redirect(w, r, "/about", http.StatusSeeOther)
+		return
+	}
+
 	var form userSignupForm
 
-	err := app.decodePostForm(r, &form)
+	err = app.decodePostForm(r, &form)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
@@ -179,7 +230,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.users.Insert(form.Name, form.Email, form.Password)
+	err = app.users.Insert(form.Name, form.Email, form.Password, form.Owner)
 	if err != nil {
 		if errors.Is(err, models.ErrDuplicateEmail) {
 			form.AddFieldError("email", "Email address is already in use")
@@ -201,6 +252,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
 	data := app.newTemplateData(r)
 	data.Form = userLoginForm{}
+
 	app.render(w, http.StatusOK, "login.page.tmpl", data)
 }
 
@@ -250,6 +302,15 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	// Add the ID of the current user to the session, so that they are now logged in.
 	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
 
+	owner, err := app.users.Authorize(id)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+	if owner {
+		app.sessionManager.Put(r.Context(), "owner", owner)
+	}
+
 	// PopString pops the value for the "redirectPathAfterLogin" key from the session data.
 	// If there is no matching key in the session data, it will return an empty string.
 	urlPath := app.sessionManager.PopString(r.Context(), "redirectPathAfterLogin")
@@ -272,6 +333,7 @@ func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
 
 	// Remove authenticatedUserID from the session data so the user is logged out.
 	app.sessionManager.Remove(r.Context(), "authenticatedUserID")
+	app.sessionManager.Remove(r.Context(), "owner")
 
 	app.sessionManager.Put(r.Context(), "flash", "You've been logged out successfully!")
 

@@ -13,6 +13,7 @@ import (
 // templateData holds dynamic data to pass to HTML templates.
 type templateData struct {
 	IsAuthenticated bool
+	IsAuthorized    bool
 	CurrentYear     int
 	Flash           string
 	CSRFToken       string

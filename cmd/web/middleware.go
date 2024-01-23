@@ -66,11 +66,25 @@ func (app *application) requireAuthentication(next http.Handler) http.Handler {
 	})
 }
 
+func (app *application) requireAuthorization(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !app.isAuthorized(r) {
+			app.sessionManager.Put(r.Context(), "redirectPathAfterLogin", r.URL.Path)
+			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+			return
+		}
+
+		w.Header().Add("Cache-Control", "no-store")
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func noSurf(next http.Handler) http.Handler {
 	csrfHandler := nosurf.New(next)
 	csrfHandler.SetBaseCookie(http.Cookie{
 		Path:     "/",
-		Secure:   true,
+		Secure:   true, // false to deploy without an SSL/TLS certificate
 		HttpOnly: true,
 	})
 
@@ -97,6 +111,32 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		// value of true in the request context and assign it to r.
 		if exists {
 			ctx := context.WithValue(r.Context(), isAuthenticatedContextKey, true)
+			r = r.WithContext(ctx)
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) authorize(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Retrieve the authenticatedUserID value from the session
+		// GetInt will return 0 if no authenticatedUserID value is in the session,
+		// in which case call the next handler in the chain and return.
+		id := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+		if id == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		owner, err := app.users.Authorize(id)
+		if err != nil {
+			app.serverError(w, err)
+			return
+		}
+
+		if owner {
+			ctx := context.WithValue(r.Context(), isAuthorizedContextKey, true)
 			r = r.WithContext(ctx)
 		}
 
