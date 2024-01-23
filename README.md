@@ -7,3 +7,4 @@ Updates:
 * container build and push GitHubs Actions workflow.
 * database migrations.
 * prototype counter feature.
+* prototype owner role.
