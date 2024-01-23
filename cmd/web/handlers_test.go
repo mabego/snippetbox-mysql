@@ -45,6 +45,12 @@ func TestSnippetView(t *testing.T) {
 			wantBody: "An old silent pond...",
 		},
 		{
+			name:     "Review complete",
+			urlPath:  "/snippet/view/1",
+			wantCode: http.StatusOK,
+			wantBody: "Review completed.",
+		},
+		{
 			name:     "Non-existent ID",
 			urlPath:  "/snippet/view/2",
 			wantCode: http.StatusNotFound,

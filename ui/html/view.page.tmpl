@@ -13,4 +13,20 @@
             </div>
         </div>
     {{end}}
+    <br>
+    <div>
+        <span><i>Reviews {{.Review.Reviews}}</i></span>
+    </div>
+    <div>
+        {{ if lt .Review.Reviews 5 }}
+            <form action="/snippet/view/{{.Snippet.ID}}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                <div>
+                    <input type="submit" value="Submit review">
+                </div>
+            </form>
+        {{else}}
+            <b>Review completed.</b>
+        {{end}}
+    </div>
 {{end}}

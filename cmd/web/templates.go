@@ -12,14 +12,15 @@ import (
 
 // templateData holds dynamic data to pass to HTML templates.
 type templateData struct {
+	IsAuthenticated bool
 	CurrentYear     int
+	Flash           string
+	CSRFToken       string
 	Snippet         *models.Snippet
+	Review          *models.Review
+	User            *models.User
 	Snippets        []*models.Snippet
 	Form            any
-	Flash           string
-	IsAuthenticated bool
-	CSRFToken       string
-	User            *models.User
 }
 
 func humanDate(t time.Time) string {

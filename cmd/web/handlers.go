@@ -86,6 +86,18 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	data := app.newTemplateData(r)
 	data.Snippet = snippet
 
+	// Retrieve the authenticatedUserID value from the session
+	// GetInt will return 0 if no authenticatedUserID value is in the session.
+	userID := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+
+	review, err := app.reviews.Get(userID, snippet.ID)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	data.Review = review
+
 	app.render(w, http.StatusOK, "view.page.tmpl", data)
 }
 
@@ -345,6 +357,34 @@ func (app *application) accountPasswordUpdatePost(w http.ResponseWriter, r *http
 	app.sessionManager.Put(r.Context(), "flash", "Your password has been updated!")
 
 	http.Redirect(w, r, "/account/view", http.StatusSeeOther)
+}
+
+func (app *application) reviewUpdatePost(w http.ResponseWriter, r *http.Request) {
+	// ParamsFromContext returns a slice containing parameter names and values from the request context.
+	params := httprouter.ParamsFromContext(r.Context())
+
+	// ByName gets the value of the "id" named parameter from the slice and validates it as normal.
+	snippetID, err := strconv.Atoi(params.ByName("id"))
+	if err != nil || snippetID < 1 {
+		app.notFound(w)
+		return
+	}
+
+	// Retrieve the authenticatedUserID value from the session
+	// GetInt will return 0 if no authenticatedUserID value is in the session.
+	userID := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+
+	err = app.reviews.Update(userID, snippetID)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	// Put adds a key and string value to the session data.
+	app.sessionManager.Put(r.Context(), "flash", "Review successfully submitted!")
+
+	// Redirect the user to the relevant page for the section.
+	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", snippetID), http.StatusSeeOther)
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {

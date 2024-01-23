@@ -45,6 +45,7 @@ func (app *application) routes() http.Handler {
 	router.Handler(http.MethodGet, "/account/view", protected.ThenFunc(app.accountView))
 	router.Handler(http.MethodGet, "/account/password/update", protected.ThenFunc(app.accountPasswordUpdate))
 	router.Handler(http.MethodPost, "/account/password/update", protected.ThenFunc(app.accountPasswordUpdatePost))
+	router.Handler(http.MethodPost, "/snippet/view/:id", protected.ThenFunc(app.reviewUpdatePost))
 
 	// A middleware chain using alice containing the 'standard' middleware used for every application request.
 	standard := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
