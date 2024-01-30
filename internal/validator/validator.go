@@ -2,7 +2,6 @@ package validator
 
 import (
 	"regexp"
-	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -50,9 +49,15 @@ func MaxChars(value string, n int) bool {
 	return utf8.RuneCountInString(value) <= n
 }
 
-// PermittedValue is a generic function that returns true if a specific value is in a list of permitted values.
+// The PermittedValue generic function returns true if a value of type T equals one of the variadic
+// permittedValues parameters.
 func PermittedValue[T comparable](value T, permittedValues ...T) bool {
-	return slices.Contains(permittedValues, value)
+	for i := range permittedValues {
+		if value == permittedValues[i] {
+			return true
+		}
+	}
+	return false
 }
 
 func MinChars(value string, n int) bool {
