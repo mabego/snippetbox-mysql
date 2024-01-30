@@ -18,7 +18,7 @@ body {
 }
 
 header, nav, main, footer {
-    padding: 2px calc((100% - 800px) / 2) 0;
+    padding: 2px calc((100% - 850px) / 2) 0;
 }
 
 main {
@@ -230,6 +230,7 @@ button:hover {
     padding: 18px;
     border-top: 1px solid #E4E5E7;
     border-bottom: 1px solid #E4E5E7;
+    white-space: pre-wrap;
 }
 
 .snippet .metadata {
