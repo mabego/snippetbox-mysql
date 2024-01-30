@@ -1,6 +1,6 @@
 module github.com/mabego/snippetbox-mysql
 
-go 1.21.5
+go 1.21
 
 require (
 	github.com/alexedwards/scs/mysqlstore v0.0.0-20231113091146-cef4b05350c8
