@@ -8,3 +8,5 @@ Updates:
 * database migrations.
 * prototype counter feature.
 * prototype owner role.
+
+Create an owner user at `/user/signup` to start posting snippets and adding users.
